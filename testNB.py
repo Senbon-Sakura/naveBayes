@@ -41,14 +41,16 @@ def createDataSet(filename):
 #触感 1-2代表 硬滑 软粘
 #好瓜 1代表 是 0 代表 不是
 dataArr, labelArr = createDataSet('西瓜数据集3.0.xlsx')
-testVec = [2, 2, 2, 1, 3, 1, 0.697, 0.460]
+testVec = [2, 2, 1, 1, 3, 1, 0.697, 0.460]      # 敲声为清脆，需要用到laplace平滑
 numSamp = np.shape(dataArr)[0]
 numFeat = np.shape(dataArr)[1]
 print("Sample num is: ", numSamp)
 print("Feature num is: ", numFeat)
 # 计算先验概率P(ci)
-PC1 = np.sum(labelArr == 1.0)/numSamp
-PC0 = np.sum(labelArr == 0.0)/numSamp
+#labelN = len(set(labelArr))
+labelN = len(np.unique(labelArr))
+PC1 = (np.sum(labelArr == 1.0)+1)/(numSamp + labelN)        # laplace平滑
+PC0 = (np.sum(labelArr == 0.0)+1)/(numSamp + labelN)        # laplace平滑
 print("PC0 = ", PC0)
 print("PC1 = ", PC1)
 
@@ -59,7 +61,8 @@ PcondBad = 1
 for i in range(numFeat):
     indexGood = np.where(labelArr == 1.0)
     if i < (numFeat-2):         # 离散值使用大数定理进行估计
-        PcondGood_i = np.sum(dataArr[indexGood, i] == testVec[i])/np.shape(indexGood)[1]
+        attrN = len(np.unique(dataArr[:, i]))
+        PcondGood_i = (np.sum(dataArr[indexGood, i] == testVec[i])+1)/(np.shape(indexGood)[1] + attrN)    # laplace平滑
     else:                       # 连续值先假设服从高斯分布，然后采用极大似然估计
         Mean_ci = np.mean(dataArr[indexGood, i])
         Var_ci = np.var(dataArr[indexGood, i], ddof=1)
@@ -70,7 +73,8 @@ for i in range(numFeat):
 for i in range(numFeat):
     indexBad = np.where(labelArr == 0.0)
     if i < (numFeat-2):
-        PcondBad_i = np.sum(dataArr[indexBad, i] == testVec[i])/np.shape(indexBad)[1]
+        attrN = len(np.unique(dataArr[:, i]))
+        PcondBad_i = (np.sum(dataArr[indexBad, i] == testVec[i]) + 1)/(np.shape(indexBad)[1] + attrN)
     else:
         Mean_ci = np.mean(dataArr[indexGood, i])
         Var_ci = np.var(dataArr[indexGood, i], ddof=1)
