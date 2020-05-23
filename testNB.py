@@ -44,24 +44,29 @@ dataArr, labelArr = createDataSet('西瓜数据集3.0.xlsx')
 testVec = [2, 2, 2, 1, 3, 1, 0.697, 0.460]
 numSamp = np.shape(dataArr)[0]
 numFeat = np.shape(dataArr)[1]
+print("Sample num is: ", numSamp)
 print("Feature num is: ", numFeat)
-
+# 计算先验概率P(ci)
 PC1 = np.sum(labelArr == 1.0)/numSamp
 PC0 = np.sum(labelArr == 0.0)/numSamp
 print("PC0 = ", PC0)
 print("PC1 = ", PC1)
-PcondGood = []
-PcondBad = []
+
+PcondGood = 1
+PcondBad = 1
+# 对每一个xi，计算类条件概率P(xi|cj)，然后累乘得到P(x|cj)
+# 先计算P(xi|c1)，并将结果保存到PcondGood列表中
 for i in range(numFeat):
     indexGood = np.where(labelArr == 1.0)
-    if i < (numFeat-2):
+    if i < (numFeat-2):         # 离散值使用大数定理进行估计
         PcondGood_i = np.sum(dataArr[indexGood, i] == testVec[i])/np.shape(indexGood)[1]
-    else:
+    else:                       # 连续值先假设服从高斯分布，然后采用极大似然估计
         Mean_ci = np.mean(dataArr[indexGood, i])
         Var_ci = np.var(dataArr[indexGood, i], ddof=1)
         PcondGood_i = (1 / (np.sqrt(2 * np.pi * Var_ci)) * np.exp(-(testVec[i] - Mean_ci) ** 2 / (2 * Var_ci)))
-    PcondGood.append(PcondGood_i)
+    PcondGood *= PcondGood_i
 
+# 先计算P(xi|c0)，并将结果保存到PcondBad
 for i in range(numFeat):
     indexBad = np.where(labelArr == 0.0)
     if i < (numFeat-2):
@@ -70,10 +75,11 @@ for i in range(numFeat):
         Mean_ci = np.mean(dataArr[indexGood, i])
         Var_ci = np.var(dataArr[indexGood, i], ddof=1)
         PcondBad_i = (1 / (np.sqrt(2 * np.pi* Var_ci) ) * np.exp(-(testVec[i] - Mean_ci) ** 2 / (2 * Var_ci)))
-    PcondBad.append(PcondBad_i)
+    PcondBad *= PcondBad_i
 
-PBad = cumProduct(PcondBad)*PC0
-PGood = cumProduct(PcondGood)*PC1
+# 计算联合概率P(x|ci)
+PBad = PcondBad*PC0
+PGood = PcondGood*PC1
 
 print("PBad = ", PBad)
 print("PGood = ", PGood)
